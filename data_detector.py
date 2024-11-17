@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import Dataset
 import os
 import time
-import collections
+import collections.abc as collections
 import random
 from layers import iou
 from scipy.ndimage import zoom
@@ -25,7 +25,7 @@ class DataBowl3Detector(Dataset):
         self.r_rand = config['r_rand_crop']
         self.augtype = config['augtype']
         data_dir = config['datadir']
-	self.pad_value = config['pad_value']
+        self.pad_value = config['pad_value']
         
         self.split_comber = split_comber
         idcs = split
@@ -75,8 +75,7 @@ class DataBowl3Detector(Dataset):
     def __getitem__(self, idx,split=None):
         t = time.time()
         np.random.seed(int(str(t%1)[2:7]))#seed according to time
-
-	isRandomImg  = False
+        isRandomImg  = False
         if self.phase !='test':
             if idx>=len(self.bboxes):
                 isRandom = True
@@ -90,7 +89,7 @@ class DataBowl3Detector(Dataset):
         if self.phase != 'test':
             if not isRandomImg:
                 bbox = self.bboxes[idx]
-		filename = self.filenames[int(bbox[0])]
+                filename = self.filenames[int(bbox[0])]
                 imgs = np.load(filename)[0:self.channel]
                 bboxes = self.sample_bboxes[int(bbox[0])]
                 isScale = self.augtype['scale'] and (self.phase=='train')
@@ -100,7 +99,7 @@ class DataBowl3Detector(Dataset):
                         ifflip = self.augtype['flip'], ifrotate=self.augtype['rotate'], ifswap = self.augtype['swap'])
             else:
                 randimid = np.random.randint(len(self.kagglenames))
-		filename = self.kagglenames[randimid]
+                filename = self.kagglenames[randimid]
                 imgs = np.load(filename)[0:self.channel]
                 bboxes = self.sample_bboxes[randimid]
                 isScale = self.augtype['scale'] and (self.phase=='train')
@@ -119,15 +118,15 @@ class DataBowl3Detector(Dataset):
             ph = int(np.ceil(float(nh) / self.stride)) * self.stride
             pw = int(np.ceil(float(nw) / self.stride)) * self.stride
             imgs = np.pad(imgs, [[0,0],[0, pz - nz], [0, ph - nh], [0, pw - nw]], 'constant',constant_values = self.pad_value)
-            xx,yy,zz = np.meshgrid(np.linspace(-0.5,0.5,imgs.shape[1]/self.stride),
-                                   np.linspace(-0.5,0.5,imgs.shape[2]/self.stride),
-                                   np.linspace(-0.5,0.5,imgs.shape[3]/self.stride),indexing ='ij')
+            xx,yy,zz = np.meshgrid(np.linspace(-0.5,0.5, int(imgs.shape[1]/self.stride)),
+                                   np.linspace(-0.5,0.5,int(imgs.shape[2]/self.stride)),
+                                   np.linspace(-0.5,0.5,int(imgs.shape[3]/self.stride)),indexing ='ij')
             coord = np.concatenate([xx[np.newaxis,...], yy[np.newaxis,...],zz[np.newaxis,:]],0).astype('float32')
             imgs, nzhw = self.split_comber.split(imgs)
             coord2, nzhw2 = self.split_comber.split(coord,
-                                                   side_len = self.split_comber.side_len/self.stride,
-                                                   max_stride = self.split_comber.max_stride/self.stride,
-                                                   margin = self.split_comber.margin/self.stride)
+                                                   side_len = int(self.split_comber.side_len/self.stride),
+                                                   max_stride = int(self.split_comber.max_stride/self.stride),
+                                                   margin = int(self.split_comber.margin/self.stride))
             assert np.all(nzhw==nzhw2)
             imgs = (imgs.astype(np.float32)-128)/128
             return torch.from_numpy(imgs.astype(np.float32)), bboxes, torch.from_numpy(coord2.astype(np.float32)), np.array(nzhw)
@@ -135,8 +134,8 @@ class DataBowl3Detector(Dataset):
     def __len__(self):
         if self.phase == 'train':
             return len(self.bboxes)/(1-self.r_rand)
-	elif self.phase =='val':
-	    return len(self.bboxes)
+        elif self.phase =='val':
+            return len(self.bboxes)
         else:
             return len(self.filenames)
         
@@ -187,7 +186,7 @@ class Crop(object):
         self.crop_size = config['crop_size']
         self.bound_size = config['bound_size']
         self.stride = config['stride']
-	self.pad_value = config['pad_value']
+        self.pad_value = config['pad_value']
 
     def __call__(self, imgs, target, bboxes,isScale=False,isRand=False):
         if isScale:

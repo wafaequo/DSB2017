@@ -1,6 +1,6 @@
 import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
-import dicom
+import pydicom as dicom
 import os
 import scipy.ndimage
 import matplotlib.pyplot as plt
@@ -10,7 +10,7 @@ from skimage import measure, morphology
 
 
 def load_scan(path):
-    slices = [dicom.read_file(path + '/' + s) for s in os.listdir(path)]
+    slices = [dicom.dcmread(path + '/' + s) for s in os.listdir(path)]
     slices.sort(key = lambda x: float(x.ImagePositionPatient[2]))
     if slices[0].ImagePositionPatient[2] == slices[1].ImagePositionPatient[2]:
         sec_num = 2;
@@ -47,7 +47,7 @@ def get_pixels_hu(slices):
             
         image[slice_number] += np.int16(intercept)
     
-    return np.array(image, dtype=np.int16), np.array([slices[0].SliceThickness] + slices[0].PixelSpacing, dtype=np.float32)
+    return np.array(image, dtype=np.int16), np.array([slices[0].SliceThickness] + list(slices[0].PixelSpacing), dtype=np.float32)
 
 def binarize_per_slice(image, spacing, intensity_th=-600, sigma=1, area_th=30, eccen_th=0.99, bg_patch_size=10):
     bw = np.zeros(image.shape, dtype=bool)
